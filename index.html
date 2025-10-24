@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I Macellai di Pozzuoli - Dossier Investigativo</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        
+        :root {
+            --glitch-color-1: #ff4444; /* Rosso del VHS (Primary Glitch) */
+            --glitch-color-2: #44ff44; /* Verde per il ghosting */
+            --glitch-color-3: #4444ff; /* Blu per il ghosting */
+            --vhs-text-color: #e0e0e0;
+        }
+
+        body {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh; /* Usa min-height per coprire l'intera pagina */
+            background: #0a0a0a;
+            font-family: 'VT323', 'Courier New', monospace;
+            color: var(--vhs-text-color);
+            overflow-y: auto; 
+            position: relative;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        .vhs-container {
+            min-height: 100%;
+            /* Aggiunge un leggero jitter/tremolio al contenitore principale */
+            animation: vhs-scan-jitter 0.4s infinite alternate; 
+            background: 
+                radial-gradient(ellipse at center, #1a1a1a 0%, #0a0a0a 50%, #000000 100%);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start; /* Allinea il contenuto in alto */
+            align-items: center;
+            padding: 20px; 
+            /* Applica un filtro per simulare il CRT/VHS */
+            filter: contrast(1.1) brightness(1.1);
+        }
+
+        /* ---------------------------------------------------- */
+        /* EFFETTI VIDEO (SCANLINES, GLITCH, OSD) */
+        /* ---------------------------------------------------- */
+        
+        /* Linee di scansione orizzontali (Scanlines) */
+        .vhs-scanlines {
+            position: fixed; 
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(0, 0, 0, 0.4) 50%,
+                rgba(0, 0, 0, 0.7) 50%
+            );
+            background-size: 100% 3px; 
+            z-index: 20;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        /* OSD (On-Screen Display: PLAY/FF>>) */
+        .vhs-osd {
+            position: fixed; 
+            top: 10px;
+            left: 10px;
+            font-size: 1.5rem;
+            color: var(--vhs-text-color);
+            opacity: 0.8;
+            z-index: 100;
+            pointer-events: none;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+        .vhs-osd.rewind {
+            animation: pulse 1s infinite;
+            color: var(--glitch-color-1); 
+            text-shadow: 0 0 10px var(--glitch-color-1);
+        }
+
+        .vhs-noise {
+            position: fixed; 
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px),
+                radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px),
+                radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+            background-size: 3px 3px, 5px 5px, 7px 7px;
+            background-position: 0 0, 2px 2px, 4px 4px;
+            animation: vhs-static 0.1s linear infinite, color-shift 0.5s infinite alternate;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        /* ---------------------------------------------------- */
+        /* CONTENUTO PRINCIPALE (REATTIVO) */
+        /* ---------------------------------------------------- */
+
+        .content {
+            text-align: center;
+            z-index: 30; 
+            max-width: 1000px; /* Limite per PC */
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            text-shadow: 1px 0 1px var(--glitch-color-2), -1px 0 1px var(--glitch-color-3);
+            flex-grow: 1; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between; /* Spinge i pulsanti in fondo al contenuto */
+            min-height: 80vh; /* Garantisce spazio per il contenuto e i pulsanti */
+        }
+
+        .text-and-data {
+            flex-grow: 1; /* Il blocco di testo/dati cresce per spingere i pulsanti in basso */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center; /* Centra il contenuto sopra i pulsanti */
+        }
+
+        .title {
+            font-size: 2.5rem; /* Base PC */
+            color: var(--glitch-color-1);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 
+                         3px 0 5px var(--glitch-color-3),
+                        -3px 0 5px var(--glitch-color-2); 
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+            animation: flicker 2s ease-in-out infinite alternate;
+        }
+
+        .main-text {
+            font-size: 1.2rem; /* Base PC */
+            line-height: 1.5;
+            margin-bottom: 20px;
+            padding: 0 10px;
+        }
+
+        /* CLASSE per Modus Operandi (Testo più grande) */
+        .modus-operandi-text {
+            font-size: 1.5rem; /* Base PC */
+            line-height: 1.6;
+            max-width: 700px; /* Limita la larghezza per la leggibilità su PC */
+        }
+
+        /* Griglia a 4 colonne per desktop */
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px; /* Spazio maggiore su PC */
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 850px; /* Limita la griglia su PC */
+        }
+
+        .photo-card {
+            background: #222;
+            border: 2px solid #555;
+            padding: 5px;
+            box-shadow: 0 0 5px var(--glitch-color-3);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .photo-card img {
+            width: 100%;
+            height: auto;
+            max-height: 250px; /* Limite più alto per PC */
+            object-fit: contain; 
+            display: block;
+            border: 1px solid var(--glitch-color-1);
+        }
+
+        .photo-card-label {
+            margin-top: 5px;
+            font-size: 0.9rem; /* Base PC */
+            color: var(--glitch-color-2);
+        }
+
+        .status-text, .emergency-number {
+            text-shadow: 0 0 5px var(--glitch-color-1), 1px 0 1px var(--glitch-color-2);
+            margin-top: 10px;
+        }
+        
+        /* Contenitore e stile per le Vittime */
+        .victim-data-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            width: 100%;
+        }
+        
+        .victim-table {
+            border: 2px solid var(--glitch-color-1);
+            border-collapse: collapse;
+            margin-top: 20px;
+            width: 90%;
+            max-width: 400px; /* Larghezza massima adatta a PC e Mobile */
+            font-size: 1.1rem; /* Base PC */
+        }
+        
+        .victim-table td {
+            border: 1px dashed var(--glitch-color-3);
+            padding: 10px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        
+        .victim-table .label {
+            color: var(--glitch-color-2);
+            font-size: 1rem;
+            width: 35%; 
+        }
+
+        .victim-table img {
+            max-width: 100%;
+            height: auto;
+            max-height: 300px; /* Limite più alto per PC */
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* Contenitore per i pulsanti Navigazione */
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px; 
+            margin-top: 30px; /* Spazio in alto per separare dal contenuto */
+            padding-top: 10px;
+            padding-bottom: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .next-button, .back-button {
+            background: transparent;
+            color: white;
+            padding: 12px 25px; /* Base PC */
+            font-size: 1.1rem; /* Base PC */
+            font-family: 'VT323', 'Courier New', monospace;
+            cursor: pointer;
+            border-radius: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            
+            /* Pulsante Indietro: Bordo Rosso */
+            border: 2px solid var(--glitch-color-1); 
+        }
+        
+        .next-button {
+            /* Pulsante Successivo: Bordo Verde */
+            border: 2px solid var(--glitch-color-2);
+        }
+
+        .next-button:hover, .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .next-button:hover { background: rgba(68, 255, 68, 0.2); }
+        .back-button:hover { background: rgba(255, 68, 68, 0.2); }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* ---------------------------------------------------- */
+        /* MEDIA QUERIES (ADATTAMENTO TABLET E MOBILE) */
+        /* ---------------------------------------------------- */
+
+        /* Adattamento per Tablet in modalità verticale e Mobile (fino a 1024px) */
+        @media (max-width: 1024px) {
+            .title { font-size: 2rem; margin-bottom: 20px; }
+            .main-text { font-size: 1rem; }
+            .modus-operandi-text { font-size: 1.2rem; }
+
+            /* Griglia Macellai/Sketch: 2 colonne su schermi medi e piccoli */
+            .photos-grid { 
+                grid-template-columns: repeat(2, 1fr); 
+                gap: 10px;
+                max-width: 500px;
+                margin-bottom: 20px;
+            }
+            
+            .photo-card img {
+                max-height: 200px;
+            }
+            
+            .photo-card-label {
+                font-size: 0.8rem;
+            }
+
+            .victim-table {
+                font-size: 1rem;
+                max-width: 350px;
+            }
+
+            .victim-table img {
+                max-height: 250px;
+            }
+
+            .next-button, .back-button {
+                padding: 10px 20px;
+                font-size: 1rem;
+            }
+        }
+
+        /* Adattamento specifico per Smartphone (fino a 640px) */
+        @media (max-width: 640px) {
+            .vhs-osd { top: 5px; left: 5px; font-size: 1.1rem; }
+            .title { font-size: 1.5rem; }
+            
+            /* Testi standard ridotti */
+            .main-text { font-size: 0.9rem; }
+            .modus-operandi-text { font-size: 1.1rem; }
+            
+            /* Foto dei macellai: max-height ridotto per evitare scroll eccessivo */
+            .photo-card img {
+                max-height: 150px;
+            }
+
+            .victim-table img {
+                max-height: 200px;
+            }
+
+            .next-button, .back-button {
+                padding: 8px 15px;
+                font-size: 0.8rem;
+                gap: 10px;
+            }
+        }
+        
+        /* ---------------------------------------------------- */
+        /* KEYFRAMES E ANIMAZIONI (invariate) */
+        /* ---------------------------------------------------- */
+        @keyframes vhs-scan-jitter {
+            0% { transform: translate(0.5px, 0); }
+            30% { transform: translate(-0.5px, 0.5px); }
+            60% { transform: translate(0.5px, -0.5px); }
+            100% { transform: translate(-0.5px, 0); }
+        }
+
+        @keyframes color-shift {
+            0% { filter: hue-rotate(0deg); }
+            50% { filter: hue-rotate(5deg); }
+            100% { filter: hue-rotate(-5deg); }
+        }
+
+        @keyframes vhs-static {
+            0% { background-position: 0 0, 2px 2px, 4px 4px; opacity: 0.3; }
+            25% { background-position: 1px 1px, 3px 1px, 2px 5px; opacity: 0.5; }
+            50% { background-position: 2px 0px, 1px 3px, 6px 2px; opacity: 0.4; }
+            75% { background-position: 0px 2px, 4px 0px, 3px 6px; opacity: 0.6; }
+            100% { background-position: 1px 0px, 0px 4px, 5px 1px; opacity: 0.3; }
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+    <div class="vhs-container">
+        <!-- Elementi di disturbo VHS -->
+        <div class="vhs-osd" id="vhs-indicator"></div>
+        <div class="vhs-scanlines"></div>
+        <div class="vhs-noise"></div>
+        
+        <!-- PAGINA 1: Introduzione -->
+        <div id="page1" class="content">
+            <div class="text-and-data">
+                <div class="title">DOSSIER CLASSIFICATO</div>
+                <div class="main-text">
+                    Dopo gli incidenti di Via Napoli, il culto dei Macellai di Pozzuoli viene associato ad Antonio De Felice, Alessio Nappo, Mattia Servonio e Paolo Ouadba.
+                </div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="prevPage()" disabled style="opacity: 0.5;">Indietro</button> 
+                <button class="next-button" onclick="nextPage()">Successivo</button>
+            </div>
+        </div>
+
+        <!-- PAGINA 2: Foto dei sospetti -->
+        <div id="page2" class="content hidden">
+            <div class="text-and-data">
+                <div class="subtitle">Le foto dei Macellai di Pozzuoli</div>
+                <div class="photos-grid">
+                    <div class="photo-card">
+                        <img src="antonio_defelice.png" 
+                             onerror="this.src='https://placehold.co/200x250/333333/999999?text=ERRORE+CARICAMENTO';" 
+                             alt="Foto Antonio De Felice">
+                        <div class="photo-card-label">Antonio De Felice</div>
+                    </div>
+                    <div class="photo-card">
+                        <img src="alessio_nappo.png" 
+                             onerror="this.src='https://placehold.co/200x250/333333/999999?text=ERRORE+CARICAMENTO';" 
+                             alt="Foto Alessio Nappo">
+                        <div class="photo-card-label">Alessio Nappo</div>
+                    </div>
+                    <div class="photo-card">
+                        <img src="mattia_servonio.png" 
+                             onerror="this.src='https://placehold.co/200x250/333333/999999?text=ERRORE+CARICAMENTO';" 
+                             alt="Foto Mattia Servonio">
+                        <div class="photo-card-label">Mattia Servonio</div>
+                    </div>
+                    <div class="photo-card">
+                        <img src="paolo_ouadba.png" 
+                             onerror="this.src='https://placehold.co/200x250/333333/999999?text=ERRORE+CARICAMENTO';" 
+                             alt="Foto Paolo Ouadba">
+                        <div class="photo-card-label">Paolo Ouadba</div>
+                    </div>
+                </div>
+                <div class="status-text">Stato di ricerca: ESTREMO</div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="prevPage()">Indietro</button>
+                <button class="next-button" onclick="nextPage()">Successivo</button>
+            </div>
+        </div>
+
+        <!-- PAGINA 3: Sketch attuali -->
+        <div id="page3" class="content hidden">
+            <div class="text-and-data">
+                <div class="subtitle">Sketch dei Macellai di Pozzuoli - Aspetto Attuale</div>
+                <div class="photos-grid">
+                    <div class="photo-card">
+                        <img src="antonio_sketch.png" 
+                             onerror="this.src='https://placehold.co/200x250/333333/999999?text=ERRORE+CARICAMENTO';" 
+                             alt="Sketch Antonio De Felice">
+                        <div class="photo-card-label">Sketch Antonio</div>
+                    </div>
+                    <div class="photo-card">
+                        <img src="alessio_sketch.png" 
+                             onerror="this.src='https://placehold.co/200x250/333333/999999?text=ERRORE+CARICAMENTO';" 
+                             alt="Sketch Alessio Nappo">
+                        <div class="photo-card-label">Sketch Alessio</div>
+                    </div>
+                    <div class="photo-card">
+                        <img src="mattia_sketch.png" 
+                             onerror="this.src='https://placehold.co/200x250/333333/999999?text=ERRORE+CARICAMENTO';" 
+                             alt="Sketch Mattia Servonio">
+                        <div class="photo-card-label">Sketch Mattia</div>
+                    </div>
+                    <div class="photo-card">
+                        <img src="paolo_sketch.png" 
+                             onerror="this.src='https://placehold.co/200x250/333333/999999?text=ERRORE+CARICAMENTO';" 
+                             alt="Sketch Paolo Ouadba">
+                        <div class="photo-card-label">Sketch Paolo</div>
+                    </div>
+                </div>
+                <div class="status-text">Stato di ricerca: ESTREMO</div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="prevPage()">Indietro</button>
+                <button class="next-button" onclick="nextPage()">Successivo</button>
+            </div>
+        </div>
+
+        <!-- PAGINA 4: Modus Operandi -->
+        <div id="page4" class="content hidden">
+            <div class="text-and-data">
+                <div class="subtitle">Modus Operandi</div>
+                <div class="main-text modus-operandi-text">
+                    Il culto dei Macellai di Pozzuoli utilizza tecniche di manipolazione psicologica avanzate per reclutare le vittime attraverso false promesse di appartenenza e protezione. Operano principalmente durante le ore notturne in zone periferiche e edifici abbandonati. Le indagini hanno documentato rituali che coinvolgono simboli occulti e pratiche estreme. I membri mostrano segni di condizionamento mentale profondo e agiscono con estrema violenza contro chiunque tenti di opporsi al culto.
+                </div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="prevPage()">Indietro</button>
+                <button class="next-button" onclick="nextPage()">Successivo</button>
+            </div>
+        </div>
+
+        <!-- PAGINE VITTIME (5-14) - Ognuna con la sua tabella e campo immagine -->
+
+        <div id="page5" class="content hidden">
+            <div class="text-and-data">
+                <div class="status-text">Vittima n°1 - Marco Esposito</div>
+                <div class="victim-data-container">
+                    <table class="victim-table">
+                        <tr>
+                            <td colspan="2">
+                                <img src="marco_esposito.png" 
+                                     onerror="this.src='https://placehold.co/300x350/333333/999999?text=ERRORE+CARICAMENTO';"
+                                     alt="Foto di Marco Esposito">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label">NOME:</td>
+                            <td>Marco Esposito</td>
+                        </tr>
+                        <tr>
+                            <td class="label">DATA:</td>
+                            <td>15 Marzo 2023</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="prevPage()">Indietro</button>
+                <button class="next-button" onclick="nextPage()">Successivo</button>
+            </div>
+        </div>
+
+        <div id="page6" class="content hidden">
+            <div class="text-and-data">
+                <div class="status-text">Vittima n°2 - Giulia Romano</div>
+                <div class="victim-data-container">
+                    <table class="victim-table">
+                        <tr>
+                            <td colspan="2">
+                                <img src="giulia_romano.png" 
+                                     onerror="this.src='https://placehold.co/300x350/333333/999999?text=ERRORE+CARICAMENTO';"
+                                     alt="Foto di Giulia Romano">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label">NOME:</td>
+                            <td>Giulia Romano</td>
+                        </tr>
+                        <tr>
+                            <td class="label">DATA:</td>
+                            <td>28 Aprile 2023</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="prevPage()">Indietro</button>
+                <button class="next-button" onclick="nextPage()">Successivo</button>
+            </div>
+        </div>
+
+        <div id="page7" class="content hidden">
+            <div class="text-and-data">
+                <div class="status-text">Vittima n°3 - Francesco Bianchi</div>
+                <div class="victim-data-container">
+                    <table class="victim-table">
+                        <tr>
+                            <td colspan="2">
+                                <img src="francesco_bianchi.png" 
+                                     onerror="this.src='https://placehold.co/300x350/333333/999999?text=ERRORE+CARICAMENTO';"
+                                     alt="Foto di Francesco Bianchi">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label">NOME:</td>
+                            <td>Francesco Bianchi</td>
+                        </tr>
+                        <tr>
+                            <td class="label">DATA:</td>
+                            <td>12 Maggio 2023</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="prevPage()">Indietro</button>
+                <button class="next-button" onclick="nextPage()">Successivo</button>
+            </div>
+        </div>
+
+        <div id="page8" class="content hidden">
+            <div class="text-and-data">
+                <div class="status-text">Vittima n°4 - Valentina Greco</div>
+                <div class="victim-data-container">
+                    <table class="victim-table">
+                        <tr>
+                            <td colspan="2">
+                                <img src="valentina_greco.png" 
+                                     onerror="this.src='https://placehold.co/300x350/333333/999999?text=ERRORE+CARICAMENTO';"
+                                     alt="Foto di Valentina Greco">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label">NOME:</td>
+                            <td>Valentina Greco</td>
+                        </tr>
+                        <tr>
+                            <td class="label">DATA:</td>
+                            <td>3 Giugno 2023</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="prevPage()">Indietro</button>
+                <button class="next-button" onclick="nextPage()">Successivo</button>
+            </div>
+        </div>
+
+        <div id="page9" class="content hidden">
+            <div class="text-and-data">
+                <div class="status-text">Vittima n°5 - Roberto Ferrara</div>
+                <div class="victim-data-container">
+                    <table class="victim-table">
+                        <tr>
+                            <td colspan="2">
+                                <img src="roberto_ferrara.png" 
+                                     onerror="this.src='https://placehold.co/300x350/333333/999999?text=ERRORE+CARICAMENTO';"
+                                     alt="Foto di Roberto Ferrara">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label">NOME:</td>
+                            <td>Roberto Ferrara</td>
+                        </tr>
+                        <tr>
+                            <td class="label">DATA:</td>
+                            <td>19 Luglio 2023</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="prevPage()">Indietro</button>
+                <button class="next-button" onclick="nextPage()">Successivo</button>
+            </div>
+        </div>
+
+        <div id="page10" class="content hidden">
+            <div class="text-and-data">
+                <div class="status-text">Vittima n°6 - Chiara Lombardi</div>
+                <div class="victim-data-container">
+                    <table class="victim-table">
+                        <tr>
+                            <td colspan="2">
+                                <img src="chiara_lombardi.png" 
+                                     onerror="this.src='https://placehold.co/300x350/333333/999999?text=ERRORE+CARICAMENTO';"
+                                     alt="Foto di Chiara Lombardi">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label">NOME:</td>
+                            <td>Chiara Lombardi</td>
+                        </tr>
+                        <tr>
+                            <td class="label">DATA:</td>
+                            <td>7 Agosto 2023</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="prevPage()">Indietro</button>
+                <button class="next-button" onclick="nextPage()">Successivo</button>
+            </div>
+        </div>
+
+        <div id="page11" class="content hidden">
+            <div class="text-and-data">
+                <div class="status-text">Vittima n°7 - Alessandro Conti</div>
+                <div class="victim-data-container">
+                    <table class="victim-table">
+                        <tr>
+                            <td colspan="2">
+                                <img src="alessandro_conti.png" 
+                                     onerror="this.src='https://placehold.co/300x350/333333/999999?text=ERRORE+CARICAMENTO';"
+                                     alt="Foto di Alessandro Conti">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label">NOME:</td>
+                            <td>Alessandro Conti</td>
+                        </tr>
+                        <tr>
+                            <td class="label">DATA:</td>
+                            <td>22 Settembre 2023</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="prevPage()">Indietro</button>
+                <button class="next-button" onclick="nextPage()">Successivo</button>
+            </div>
+        </div>
+
+        <div id="page12" class="content hidden">
+            <div class="text-and-data">
+                <div class="status-text">Vittima n°8 - Stefania Ricci</div>
+                <div class="victim-data-container">
+                    <table class="victim-table">
+                        <tr>
+                            <td colspan="2">
+                                <img src="stefania_ricci.png" 
+                                     onerror="this.src='https://placehold.co/300x350/333333/999999?text=ERRORE+CARICAMENTO';"
+                                     alt="Foto di Stefania Ricci">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label">NOME:</td>
+                            <td>Stefania Ricci</td>
+                        </tr>
+                        <tr>
+                            <td class="label">DATA:</td>
+                            <td>14 Ottobre 2023</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="prevPage()">Indietro</button>
+                <button class="next-button" onclick="nextPage()">Successivo</button>
+            </div>
+        </div>
+
+        <div id="page13" class="content hidden">
+            <div class="text-and-data">
+                <div class="status-text">Vittima n°9 - Davide Moretti</div>
+                <div class="victim-data-container">
+                    <table class="victim-table">
+                        <tr>
+                            <td colspan="2">
+                                <img src="davide_moretti.png" 
+                                     onerror="this.src='https://placehold.co/300x350/333333/999999?text=ERRORE+CARICAMENTO';"
+                                     alt="Foto di Davide Moretti">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label">NOME:</td>
+                            <td>Davide Moretti</td>
+                        </tr>
+                        <tr>
+                            <td class="label">DATA:</td>
+                            <td>1 Novembre 2023</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="prevPage()">Indietro</button>
+                <button class="next-button" onclick="nextPage()">Successivo</button>
+            </div>
+        </div>
+
+        <div id="page14" class="content hidden">
+            <div class="text-and-data">
+                <div class="status-text">Vittima n°10 - Elena Santoro</div>
+                <div class="victim-data-container">
+                    <table class="victim-table">
+                        <tr>
+                            <td colspan="2">
+                                <img src="elena_santoro.png" 
+                                     onerror="this.src='https://placehold.co/300x350/333333/999999?text=ERRORE+CARICAMENTO';"
+                                     alt="Foto di Elena Santoro">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label">NOME:</td>
+                            <td>Elena Santoro</td>
+                        </tr>
+                        <tr>
+                            <td class="label">DATA:</td>
+                            <td>18 Dicembre 2023</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="prevPage()">Indietro</button>
+                <button class="next-button" onclick="nextPage()">Successivo</button>
+            </div>
+        </div>
+
+        <!-- PAGINA 15: Avviso (Pagina finale) -->
+        <div id="page15" class="content hidden">
+            <div class="text-and-data">
+                <div class="main-text warning-text modus-operandi-text">
+                    SOGGETTI ESTREMAMENTE PERICOLOSI ED ESPERTI MANIPOLATORI.<br>
+                    AVVICINARSI CON CAUTELA.<br><br>
+                    CHIAMARE IMMEDIATAMENTE QUESTO NUMERO SE AVVISTATI:
+                </div>
+                <div class="emergency-number">081 7941111</div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="prevPage()">Indietro</button>
+                <!-- Al posto di "Successivo", riporta all'inizio -->
+                <button class="next-button" onclick="nextPage()">Ricomincia</button> 
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Logica di paginazione e gestione degli effetti VHS
+        let currentPage = 1;
+        const totalPages = 15;
+        const vhsIndicator = document.getElementById('vhs-indicator');
+        const contentPages = [];
+        
+        // Colleziona tutti gli elementi di pagina
+        for (let i = 1; i <= totalPages; i++) {
+            const page = document.getElementById(`page${i}`);
+            if (page) {
+                contentPages.push(page);
+            }
+        }
+        
+        // Funzione per aggiornare lo stato di navigazione (pulsanti)
+        function updateNavigationState() {
+            const currentPageElement = contentPages[currentPage - 1];
+            if (!currentPageElement) return;
+
+            // Logica per il pulsante Indietro
+            const backButton = currentPageElement.querySelector('.back-button');
+            if (backButton) {
+                if (currentPage === 1) {
+                    backButton.disabled = true;
+                    backButton.style.opacity = 0.5;
+                } else {
+                    backButton.disabled = false;
+                    backButton.style.opacity = 1;
+                }
+            }
+            
+            // Logica per il pulsante Successivo/Ricomincia
+            const nextButton = currentPageElement.querySelector('.next-button');
+            if (nextButton) {
+                if (currentPage === totalPages) {
+                    nextButton.textContent = 'Ricomincia';
+                } else {
+                    nextButton.textContent = 'Successivo';
+                }
+            }
+        }
+
+        // Funzione per aggiornare l'indicatore OSD
+        function updateVhsIndicator(text, isRewind = false) {
+            vhsIndicator.textContent = text;
+            vhsIndicator.classList.toggle('rewind', isRewind);
+        }
+
+        // Simula la vibrazione/rumore al cambio di pagina (solo su dispositivi che lo supportano)
+        function addVibration() {
+            if (navigator.vibrate) {
+                // Vibrazione leggera per feedback
+                navigator.vibrate(50); 
+            }
+        }
+
+        // FUNZIONE PER AVANZARE ALLA PAGINA SUCCESSIVA
+        function nextPage() {
+            // Blocca i pulsanti durante la transizione
+            document.querySelectorAll('.next-button, .back-button').forEach(btn => btn.disabled = true);
+
+            // Nascondi la pagina corrente
+            contentPages[currentPage - 1].classList.add('hidden');
+
+            // Simula "FF>>" 
+            updateVhsIndicator('FF>>', true);
+            addVibration();
+
+            // Aspetta brevemente (simula la transizione della cassetta)
+            setTimeout(() => {
+                // Calcola la prossima pagina
+                currentPage++;
+                if (currentPage > totalPages) {
+                    currentPage = 1; // Ricomincia dall'inizio
+                }
+                
+                // Mostra la nuova pagina
+                contentPages[currentPage - 1].classList.remove('hidden');
+
+                // Torna a "PLAY"
+                updateVhsIndicator('PLAY ▶');
+                document.querySelectorAll('.next-button, .back-button').forEach(btn => btn.disabled = false);
+                updateNavigationState();
+                
+            }, 150); // Breve ritardo
+        }
+
+        // FUNZIONE PER TORNARE ALLA PAGINA PRECEDENTE
+        function prevPage() {
+            if (currentPage === 1) return; // Non fare nulla se siamo alla prima pagina
+
+            // Blocca i pulsanti durante la transizione
+            document.querySelectorAll('.next-button, .back-button').forEach(btn => btn.disabled = true);
+
+            // Nascondi la pagina corrente
+            contentPages[currentPage - 1].classList.add('hidden');
+
+            // Simula "REW ⏪"
+            updateVhsIndicator('REW ⏪', true);
+            addVibration();
+
+            // Aspetta brevemente (simula la transizione della cassetta)
+            setTimeout(() => {
+                // Calcola la pagina precedente
+                currentPage--;
+                
+                // Mostra la nuova pagina
+                contentPages[currentPage - 1].classList.remove('hidden');
+
+                // Torna a "PLAY"
+                updateVhsIndicator('PLAY ▶');
+                document.querySelectorAll('.next-button, .back-button').forEach(btn => btn.disabled = false);
+                updateNavigationState();
+                
+            }, 150); // Breve ritardo
+        }
+
+        // Inizializza l'indicatore OSD e lo stato di navigazione all'avvio
+        document.addEventListener('DOMContentLoaded', () => {
+            updateVhsIndicator('PLAY ▶');
+            updateNavigationState();
+        });
+    </script>
+</body>
+</html>
